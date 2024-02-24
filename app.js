@@ -5,6 +5,7 @@ const Account = require('./models/account');
 const Tweet = require('./models/tweet'); 
 const UserRelation = require('./models/userRelation'); 
 const Comment = require('./models/comment'); 
+const Like = require('./models/like'); 
 const cors = require('cors');
 
 const app = express();
@@ -23,6 +24,7 @@ app.post('/register', async (req, res) => {
     try {
         const account = new Account(req.body);
         const savedAccount = await account.save();
+        console.log(savedAccount)
         res.status(200).json( {account: savedAccount} );
       } catch (error) {
         console.error('Error during registration:', error);
@@ -77,6 +79,10 @@ app.get('/tweets/:accountId', async (req, res) => {
 app.post('/search', async (req, res) => {
     try {
         const { searchKey } = req.body;
+        if(searchKey == ''){
+            res.json([]);
+        }
+        else{
             const users = await Account.aggregate([
                 {
                     $project: {
@@ -95,7 +101,7 @@ app.post('/search', async (req, res) => {
                 },
             ]);
             
-            res.json(users);
+            res.json(users)};
         
     
 
@@ -190,6 +196,19 @@ app.post('/follow', async (req, res) => {
     }
 });
 
+
+app.post('/like', async (req, res) => {
+    try {
+      const like = new Like(req.body)
+        await like.save();
+       res.status(200).json(like);
+       
+    } catch (error) {
+        console.error('Error following this person:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+});
+
 app.post('/comment', async (req, res) => {
     try {
       const comment = new Comment(req.body)
@@ -202,3 +221,29 @@ app.post('/comment', async (req, res) => {
         res.status(500).json({ error: 'Internal Server Error' });
     }
 });
+
+app.get('/followings/:userId', async (req, res) => {
+    
+    try {const userId = req.params.userId; 
+    const users = await UserRelation.find({ followerId: userId });
+    res.json(users)
+}
+catch{
+    console.error('Error fetching tweets:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+}
+})
+
+app.get('/likes/:tweetId', async(req, res) => {
+    try {
+        const tweetId = req.params.tweetId;
+        
+        const likes = await Like.find({ tweetId});
+        res.json(likes)
+
+    }
+    catch{
+        console.error('Error fetching likes:', error);
+        res.status(500).json({ error: 'Internal Server Error' });
+    }
+})
